@@ -1,6 +1,6 @@
 import { SET_ALERT_DATA, SET_BREEDS_LIST, SET_BREED_FORM_DATA, SET_GENERATED_IMAGES } from "../constants/breedsConstant";
 
-export const setAllBreedsList = (params: any) => (dispatch: any) => {
+export const setAllBreedsList = (params: any | object) => (dispatch: any) => {
     dispatch({
         type: SET_BREEDS_LIST,
         payload: params,

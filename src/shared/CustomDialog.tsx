@@ -14,9 +14,10 @@ const CustomDialog = ({ openFlag, handleClose, title, dialogContent }: dialogI) 
             open={openFlag || false}
             onClose={handleClose}
             aria-labelledby="alert-dialog-title"
+            fullWidth
             aria-describedby="alert-dialog-description"
         >
-            <DialogTitle id="alert-dialog-title">
+            <DialogTitle sx={{ fontSize: 30 }} id="alert-dialog-title">
                 <b>{title}</b>
             </DialogTitle>
             <DialogContent>

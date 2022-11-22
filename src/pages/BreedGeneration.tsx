@@ -1,20 +1,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from 'react'
-import { getAllBreedsListAPI, getBreedImageAPI } from '../api/breedApi';
-import { makeStyles } from '@material-ui/core/styles';
 import CustomSelect from '../shared/CustomSelect';
 import { entries, equal, keys, length } from '../utils/javascript';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CustomButton from '../shared/CustomButton';
-import { TextField } from '@mui/material';
+import { Stack, TextField, Typography } from '@mui/material';
 import CustomAlert from '../shared/CustomAlert';
 import useCustomDispatch from '../hooks/useCustomDispatch';
 import { setAlertData, setAllBreedsList, setBreedsFormData, setBreedsImageList } from '../store/actions/breedsAction';
 import GeneratedImageModal from './GeneratedImageModal';
 import CustomBox from '../shared/CustomBox';
 import useCustomSelector from '../hooks/useCustomSelector';
+import { makeStyles } from '@mui/styles';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles((theme?: any) => ({
     button: {
         backgroundColor: 'yellow',
         color: 'black',
@@ -24,11 +23,6 @@ const useStyles = makeStyles({
         "& .MuiFormControl-root": {
             margin: '7px 5px'
         },
-        "& .MuiSvgIcon-root": {
-            position: '',
-            top: 0,
-            verticalAlign: 'center',
-        },
     },
     pointer: {
         cursor: 'pointer'
@@ -36,26 +30,33 @@ const useStyles = makeStyles({
     generateButton: {
         top: 15
     }
-});
+}));
+
+const url = process.env.REACT_APP_BASE_URL
 
 const BreedGeneration = () => {
-    const classes: any = useStyles();
+    const classes = useStyles();
     const [allBreedList, setAllBreedList] = useState<Object>({})
-    const [formData, setFormData] = useState<any>([{ breedList: [], selectedBreed: '', subBreedList: [], selectedSubBreed: '', imageCount: undefined, imageError: { flag: false, error: '' } }])
+    const [formData, setFormData] = useState<any>([{ breedList: [], selectedBreed: '', subBreedList: [], selectedSubBreed: '', imageCount: 5, imageError: { flag: false, error: '' } }])
     const [imageModal, setImageModal] = useState<any>({ flag: false, data: [] })
     const { cusDispatch } = useCustomDispatch();
     const alertData: any = useCustomSelector((state: any) => state.dogBreeds.alert);
 
     const getBreeds = async () => {
-        const response = await getAllBreedsListAPI();
-        const { data, status } = response;
+        const response = await fetch(`${url}/breeds/list/all`)
+            .then((resp) => {
+                return resp.json()
+            }).catch(err => {
+                console.log('err', err)
+            })
+        const { message, status } = response;
         const breedArray: any = [];
-        length(entries(data)) && entries(data).forEach(([key, value]) => breedArray.push({ name: key, subBreed: value }))
+        length(entries(message)) && entries(message).forEach(([key, value]) => breedArray.push({ name: key, subBreed: value }))
         if (equal(status, 'success')) {
-            setAllBreedList(data)
-            cusDispatch(setAllBreedsList(data))
+            setAllBreedList(message)
+            cusDispatch(setAllBreedsList(message))
             const temp = [...formData];
-            temp[0].breedList = data;
+            temp[0].breedList = message;
             setFormData(temp)
             cusDispatch(setBreedsFormData(temp))
         }
@@ -128,9 +129,11 @@ const BreedGeneration = () => {
             const imageListData: any = [];
             for (let index = 0; index < formData?.length; index++) {
                 const value = formData?.[index]
-                const response = await getBreedImageAPI(value?.selectedBreed, value?.selectedSubBreed, value?.imageCount)
+                const response = await fetch(`${url}/breed/${value?.selectedBreed}/${value?.selectedSubBreed}/images/random/${value?.imageCount}`)
+                    .then(resp => resp.json())
+                    .catch(err => console.log('err', err))
                 if (equal(response?.status, 'success')) {
-                    const imageData = { breed: value?.selectedBreed, subBreed: value?.selectedSubBreed, imageList: response?.data }
+                    const imageData = { breed: value?.selectedBreed, subBreed: value?.selectedSubBreed, imageList: response?.message }
                     imageListData.push(imageData)
                 }
             }
@@ -142,17 +145,17 @@ const BreedGeneration = () => {
 
     return (
         <div>
-            <h1>Dog Poster Generator</h1>
+            <Typography variant="h2" component="h3" sx={{ mb: 3 }}>Dog Poster Generator</Typography>
             <CustomAlert {...{ type: alertData?.type, message: alertData?.message, handleClose, openFlag: alertData?.flag }} />
             <div className={classes?.Box}>
                 {length(formData) ? formData.map((data: any, index: number) => {
                     return (
-                        <div key={index}>
-                            <CustomSelect {...{ value: data?.selectedBreed, onChange: (e: any) => handleBreedChange(e, index), options: length(keys(data?.breedList)) ? keys(data?.breedList) : {}, label: 'Breed' }} />
-                            <CustomSelect {...{ value: data?.selectedSubBreed, onChange: (e: any) => handleSubBreedChange(e, index), options: data?.subBreedList || [], label: 'Sub-breed' }} />
-                            <TextField type='number' value={data?.imageCount} label='Image Count' onChange={(e: any) => handleImageCountChange(e, index)} error={data?.imageError?.flag} helperText={data?.imageError?.error} />
-                            {formData?.length === index + 1 ? <AddCircleOutlineIcon onClick={handleAddRow} className={classes.pointer} /> : null}
-                        </div>)
+                        <Stack display="flex" direction="row" alignItems="center" key={index}>
+                            <CustomSelect {...{ value: data?.selectedBreed, onChange: (e: any) => handleBreedChange(e, index), options: length(keys(data?.breedList)) ? keys(data?.breedList) : {}, label: 'Breed', id: 'Breed' }} />
+                            <CustomSelect {...{ value: data?.selectedSubBreed, onChange: (e: any) => handleSubBreedChange(e, index), options: data?.subBreedList || [], label: 'Sub-breed', id: 'Sub-breed' }} />
+                            <TextField type='number' data-testid="image-count" value={data?.imageCount} label='Image Count' onChange={(e: any) => handleImageCountChange(e, index)} error={data?.imageError?.flag} helperText={data?.imageError?.error} />
+                            {formData?.length === index + 1 ? <AddCircleOutlineIcon data-testid="addNewRow" onClick={handleAddRow} className={classes.pointer} /> : null}
+                        </Stack>)
                 }) : null}
                 <CustomButton {...{ onClick: handleGenerateBreed, className: classes.generateButton }}>Generate</CustomButton>
                 {/* <CustomTextField {...{ type: 'number', value: count, label: 'Image Count', onChange: (e: any) =>handleImageCountChange(e,index) }} /> */}
